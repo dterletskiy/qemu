@@ -240,6 +240,20 @@ static int read_sys_reg64(int fd, uint64_t *pret, uint64_t id)
     return ioctl(fd, KVM_GET_ONE_REG, &idreg);
 }
 
+static int write_sys_reg64(int fd, uint64_t *pret, uint64_t id)
+{
+    int ioctl_result;
+
+    struct kvm_one_reg idreg = { .id = id, .addr = (uintptr_t)pret };
+
+    ioctl_result = ioctl(fd, KVM_SET_ONE_REG, &idreg);
+    if(0 > ioctl_result)
+    {
+        TDA_LOG( "ioctl( %d, KVM_SET_ONE_REG, ... ) = %d", fd, ioctl_result );
+    }
+    return ioctl_result;
+}
+
 static bool kvm_arm_pauth_supported(void)
 {
     return (kvm_check_extension(kvm_state, KVM_CAP_ARM_PTRAUTH_ADDRESS) &&
@@ -355,6 +369,9 @@ static bool kvm_arm_get_host_cpu_features(ARMHostCPUFeatures *ahcf)
         err |= read_sys_reg64(fdarray[2], &ahcf->isar.id_aa64mmfr0,
                               ARM64_SYS_REG(3, 0, 0, 7, 0));
         err |= read_sys_reg64(fdarray[2], &ahcf->isar.id_aa64mmfr1,
+                              ARM64_SYS_REG(3, 0, 0, 7, 1));
+        ahcf->isar.id_aa64mmfr1 &= ~(0xFULL << 8);
+        err |= write_sys_reg64(fdarray[2], &ahcf->isar.id_aa64mmfr1,
                               ARM64_SYS_REG(3, 0, 0, 7, 1));
         err |= read_sys_reg64(fdarray[2], &ahcf->isar.id_aa64mmfr2,
                               ARM64_SYS_REG(3, 0, 0, 7, 2));
