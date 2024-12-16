@@ -185,6 +185,13 @@ bool kvm_arm_pmu_supported(void);
  * Returns true if KVM can enable SVE and false otherwise.
  */
 bool kvm_arm_sve_supported(void);
+ 
+/**
+ * kvm_arm_el2_supported:
+ *
+ * Returns true if KVM can enable EL2 and false otherwise.
+ */
+bool kvm_arm_el2_supported(void);
 
 /**
  * kvm_arm_mte_supported:
@@ -238,6 +245,11 @@ static inline bool kvm_arm_pmu_supported(void)
 }
 
 static inline bool kvm_arm_sve_supported(void)
+{
+    return false;
+}
+ 
+static inline bool kvm_arm_el2_supported(void)
 {
     return false;
 }
