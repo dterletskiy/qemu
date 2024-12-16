@@ -32,4 +32,7 @@ static inline bool qemu_loglevel_mask(int mask)
 /* main logging function */
 void G_GNUC_PRINTF(1, 2) qemu_log(const char *fmt, ...);
 
+#define TDA_LOG( FORMAT, ... ) \
+    qemu_log( "@TDA [%s:%s:%d] -> " FORMAT "\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__ )
+
 #endif
