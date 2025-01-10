@@ -947,6 +947,8 @@ bool write_kvmstate_to_list(ARMCPU *cpu)
         uint32_t v32;
         int ret;
 
+        const ARMCPRegInfo *ri = get_arm_cp_reginfo(cpu->cp_regs, regidx);
+
         switch (regidx & KVM_REG_SIZE_MASK) {
         case KVM_REG_SIZE_U32:
             ret = kvm_get_one_reg(cs, regidx, &v32);
@@ -962,6 +964,7 @@ bool write_kvmstate_to_list(ARMCPU *cpu)
         }
         if (ret) {
             ok = false;
+            TDA_LOG( "name=%s / regidx=%lu", ri->name, regidx );
         }
     }
     return ok;
