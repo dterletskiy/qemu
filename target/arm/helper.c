@@ -10019,6 +10019,7 @@ static void add_cpreg_to_hashtable(ARMCPU *cpu, const ARMCPRegInfo *r,
 {
     CPUARMState *env = &cpu->env;
     uint32_t key;
+    uint64_t regidx;
     ARMCPRegInfo *r2;
     bool is64 = r->type & ARM_CP_64BIT;
     bool ns = secstate & ARM_CP_SECSTATE_NS;
@@ -10050,7 +10051,8 @@ static void add_cpreg_to_hashtable(ARMCPU *cpu, const ARMCPRegInfo *r,
     default:
         g_assert_not_reached();
     }
-    TDA_LOG( "name=%s / key=0x%x", name, key );
+    regidx = cpreg_to_kvm_id( key );
+    TDA_LOG( "name=%s / key=0x%x / regidx = 0x%lx", name, key, regidx );
 
     /* Overriding of an existing definition must be explicitly requested. */
     if (!(r->type & ARM_CP_OVERRIDE)) {
