@@ -948,7 +948,7 @@ bool write_kvmstate_to_list(ARMCPU *cpu)
         uint32_t v32;
         int ret;
 
-        uint32_t regidx_ = kvm_to_cpreg_id(regidx);regidx
+        uint32_t regidx_ = kvm_to_cpreg_id(regidx);
         const ARMCPRegInfo *ri;
         ri = get_arm_cp_reginfo(cpu->cp_regs, regidx_);
 
