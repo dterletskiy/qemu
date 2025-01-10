@@ -8464,14 +8464,14 @@ static void vncr_write(CPUARMState *env, const ARMCPRegInfo *ri,
     env->cp15.vncr_el2 = value & ~0xfffULL;
 }
 
-static const ARMCPRegInfo nv2_reginfo[] = {
-    { .name = "VNCR_EL2", .state = ARM_CP_STATE_AA64,
-      .opc0 = 3, .opc1 = 4, .crn = 2, .crm = 2, .opc2 = 0,
-      .access = PL2_RW,
-      .writefn = vncr_write,
-      .nv2_redirect_offset = 0xb0,
-      .fieldoffset = offsetof(CPUARMState, cp15.vncr_el2) },
-};
+// static const ARMCPRegInfo nv2_reginfo[] = {
+//     { .name = "VNCR_EL2", .state = ARM_CP_STATE_AA64,
+//       .opc0 = 3, .opc1 = 4, .crn = 2, .crm = 2, .opc2 = 0,
+//       .access = PL2_RW,
+//       .writefn = vncr_write,
+//       .nv2_redirect_offset = 0xb0,
+//       .fieldoffset = offsetof(CPUARMState, cp15.vncr_el2) },
+// };
 
 #endif /* TARGET_AARCH64 */
 
