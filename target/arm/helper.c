@@ -9980,7 +9980,7 @@ void register_cp_regs_for_features(ARMCPU *cpu)
     }
 
     if (cpu_isar_feature(aa64_nv2, cpu)) {
-        define_arm_cp_regs(cpu, nv2_reginfo);
+        // define_arm_cp_regs(cpu, nv2_reginfo);
     }
 
     if (cpu_isar_feature(aa64_nmi, cpu)) {
