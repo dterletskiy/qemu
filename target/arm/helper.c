@@ -8451,18 +8451,18 @@ static const ARMCPRegInfo fgt_reginfo[] = {
       .fieldoffset = offsetof(CPUARMState, cp15.fgt_exec[FGTREG_HFGITR]) },
 };
 
-static void vncr_write(CPUARMState *env, const ARMCPRegInfo *ri,
-                       uint64_t value)
-{
-    /*
-     * Clear the RES0 bottom 12 bits; this means at runtime we can guarantee
-     * that VNCR_EL2 + offset is 64-bit aligned. We don't need to do anything
-     * about the RESS bits at the top -- we choose the "generate an EL2
-     * translation abort on use" CONSTRAINED UNPREDICTABLE option (i.e. let
-     * the ptw.c code detect the resulting invalid address).
-     */
-    env->cp15.vncr_el2 = value & ~0xfffULL;
-}
+// static void vncr_write(CPUARMState *env, const ARMCPRegInfo *ri,
+//                        uint64_t value)
+// {
+//     /*
+//      * Clear the RES0 bottom 12 bits; this means at runtime we can guarantee
+//      * that VNCR_EL2 + offset is 64-bit aligned. We don't need to do anything
+//      * about the RESS bits at the top -- we choose the "generate an EL2
+//      * translation abort on use" CONSTRAINED UNPREDICTABLE option (i.e. let
+//      * the ptw.c code detect the resulting invalid address).
+//      */
+//     env->cp15.vncr_el2 = value & ~0xfffULL;
+// }
 
 // static const ARMCPRegInfo nv2_reginfo[] = {
 //     { .name = "VNCR_EL2", .state = ARM_CP_STATE_AA64,
