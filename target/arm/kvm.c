@@ -2312,22 +2312,26 @@ int kvm_arch_get_registers(CPUState *cs, Error **errp)
         ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(regs.regs[i]),
                               &env->xregs[i]);
         if (ret) {
+            TDA_LOG( "i=%d", i );
             return ret;
         }
     }
 
     ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(regs.sp), &env->sp_el[0]);
     if (ret) {
+        TDA_LOG( );
         return ret;
     }
 
     ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(sp_el1), &env->sp_el[1]);
     if (ret) {
+        TDA_LOG( );
         return ret;
     }
 
     ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(regs.pstate), &val);
     if (ret) {
+        TDA_LOG( );
         return ret;
     }
 
@@ -2345,6 +2349,7 @@ int kvm_arch_get_registers(CPUState *cs, Error **errp)
 
     ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(regs.pc), &env->pc);
     if (ret) {
+        TDA_LOG( );
         return ret;
     }
 
@@ -2359,6 +2364,7 @@ int kvm_arch_get_registers(CPUState *cs, Error **errp)
 
     ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(elr_el1), &env->elr_el[1]);
     if (ret) {
+        TDA_LOG( );
         return ret;
     }
 
@@ -2370,6 +2376,7 @@ int kvm_arch_get_registers(CPUState *cs, Error **errp)
         ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(spsr[i]),
                               &env->banked_spsr[i + 1]);
         if (ret) {
+            TDA_LOG( );
             return ret;
         }
     }
@@ -2382,31 +2389,38 @@ int kvm_arch_get_registers(CPUState *cs, Error **errp)
 
     if (cpu_isar_feature(aa64_sve, cpu)) {
         ret = kvm_arch_get_sve(cs);
+        TDA_LOG( );
     } else {
         ret = kvm_arch_get_fpsimd(cs);
+        TDA_LOG( );
     }
     if (ret) {
+        TDA_LOG( );
         return ret;
     }
 
     ret = kvm_get_one_reg(cs, AARCH64_SIMD_CTRL_REG(fp_regs.fpsr), &fpr);
     if (ret) {
+        TDA_LOG( );
         return ret;
     }
     vfp_set_fpsr(env, fpr);
 
     ret = kvm_get_one_reg(cs, AARCH64_SIMD_CTRL_REG(fp_regs.fpcr), &fpr);
     if (ret) {
+        TDA_LOG( );
         return ret;
     }
     vfp_set_fpcr(env, fpr);
 
     ret = kvm_get_vcpu_events(cpu);
     if (ret) {
+        TDA_LOG( );
         return ret;
     }
 
     if (!write_kvmstate_to_list(cpu)) {
+        TDA_LOG( );
         return -EINVAL;
     }
     /* Note that it's OK to have registers which aren't in CPUState,
@@ -2415,6 +2429,9 @@ int kvm_arch_get_registers(CPUState *cs, Error **errp)
     write_list_to_cpustate(cpu);
 
     ret = kvm_arm_sync_mpstate_to_qemu(cpu);
+    if (ret) {
+        TDA_LOG( );
+    }
 
     /* TODO: other registers */
     return ret;
