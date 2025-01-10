@@ -950,7 +950,6 @@ bool write_kvmstate_to_list(ARMCPU *cpu)
 
         uint32_t regidx_ = kvm_to_cpreg_id(cpu->cpreg_indexes[i]);
         const ARMCPRegInfo *ri;
-        uint64_t newval;
         ri = get_arm_cp_reginfo(cpu->cp_regs, regidx_);
 
         switch (regidx & KVM_REG_SIZE_MASK) {
