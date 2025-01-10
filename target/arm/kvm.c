@@ -40,7 +40,6 @@
 #include "hw/acpi/ghes.h"
 #include "target/arm/gtimer.h"
 #include "migration/blocker.h"
-#include "cpregs.h"
 
 const KVMCapabilityInfo kvm_arch_required_capabilities[] = {
     KVM_CAP_INFO(DEVICE_CTRL),
@@ -376,10 +375,14 @@ static bool kvm_arm_get_host_cpu_features(ARMHostCPUFeatures *ahcf)
                               ARM64_SYS_REG(3, 0, 0, 7, 1));
         err |= read_sys_reg64(fdarray[2], &ahcf->isar.id_aa64mmfr2,
                               ARM64_SYS_REG(3, 0, 0, 7, 2));
+        ahcf->isar.id_aa64mmfr2 &= ~(0xFULL << 24);
+        err |= write_sys_reg64(fdarray[2], &ahcf->isar.id_aa64mmfr2,
+                              ARM64_SYS_REG(3, 0, 0, 7, 2));
         err |= read_sys_reg64(fdarray[2], &ahcf->isar.id_aa64mmfr3,
                               ARM64_SYS_REG(3, 0, 0, 7, 3));
         err |= read_sys_reg64(fdarray[2], &ahcf->isar.id_aa64mmfr4,
                               ARM64_SYS_REG(3, 0, 0, 7, 4));
+        ahcf->isar.id_aa64mmfr4 &= ~(0xFULL << 20);
         ahcf->isar.id_aa64mmfr4 &= ~(0xFULL << 24);
         err |= write_sys_reg64(fdarray[2], &ahcf->isar.id_aa64mmfr4,
                               ARM64_SYS_REG(3, 0, 0, 7, 4));
@@ -893,9 +896,7 @@ static int kvm_arm_init_cpreg_list(ARMCPU *cpu)
 
     for (i = 0, arraylen = 0; i < rlp->n; i++) {
         uint64_t regidx = rlp->reg[i];
-        TDA_LOG( "regidx = 0x%lx", regidx );
         if (!kvm_arm_reg_syncs_via_cpreg_list(regidx)) {
-            TDA_LOG( "---------------- regidx = 0x%lx", regidx );
             continue;
         }
         cpu->cpreg_indexes[arraylen] = regidx;
@@ -950,10 +951,6 @@ bool write_kvmstate_to_list(ARMCPU *cpu)
         uint32_t v32;
         int ret;
 
-        uint32_t regidx_ = kvm_to_cpreg_id(regidx);
-        const ARMCPRegInfo *ri;
-        ri = get_arm_cp_reginfo(cpu->cp_regs, regidx_);
-
         switch (regidx & KVM_REG_SIZE_MASK) {
         case KVM_REG_SIZE_U32:
             ret = kvm_get_one_reg(cs, regidx, &v32);
@@ -968,14 +965,6 @@ bool write_kvmstate_to_list(ARMCPU *cpu)
             g_assert_not_reached();
         }
         if (ret) {
-            if( ri )
-            {
-                TDA_LOG( "name=%s / regidx=0x%lx", ri->name, regidx );
-            }
-            else
-            {
-                TDA_LOG( "regidx=0x%lx", regidx );
-            }
             ok = false;
         }
     }
@@ -1985,6 +1974,13 @@ int kvm_arch_init_vcpu(CPUState *cs)
     if (ret) {
         return ret;
     }
+    cpu->isar.id_aa64mmfr2 &= ~(0xFULL << 24);
+    ret = write_sys_reg64(cs->kvm_fd, &cpu->isar.id_aa64mmfr2,
+                          ARM64_SYS_REG(3, 0, 0, 7, 2));
+    if (ret) {
+        return ret;
+    }
+    cpu->isar.id_aa64mmfr4 &= ~(0xFULL << 20);
     cpu->isar.id_aa64mmfr4 &= ~(0xFULL << 24);
     ret = write_sys_reg64(cs->kvm_fd, &cpu->isar.id_aa64mmfr4,
                           ARM64_SYS_REG(3, 0, 0, 7, 4));
@@ -2327,26 +2323,22 @@ int kvm_arch_get_registers(CPUState *cs, Error **errp)
         ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(regs.regs[i]),
                               &env->xregs[i]);
         if (ret) {
-            TDA_LOG( "i=%d", i );
             return ret;
         }
     }
 
     ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(regs.sp), &env->sp_el[0]);
     if (ret) {
-        TDA_LOG( );
         return ret;
     }
 
     ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(sp_el1), &env->sp_el[1]);
     if (ret) {
-        TDA_LOG( );
         return ret;
     }
 
     ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(regs.pstate), &val);
     if (ret) {
-        TDA_LOG( );
         return ret;
     }
 
@@ -2364,7 +2356,6 @@ int kvm_arch_get_registers(CPUState *cs, Error **errp)
 
     ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(regs.pc), &env->pc);
     if (ret) {
-        TDA_LOG( );
         return ret;
     }
 
@@ -2379,7 +2370,6 @@ int kvm_arch_get_registers(CPUState *cs, Error **errp)
 
     ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(elr_el1), &env->elr_el[1]);
     if (ret) {
-        TDA_LOG( );
         return ret;
     }
 
@@ -2391,7 +2381,6 @@ int kvm_arch_get_registers(CPUState *cs, Error **errp)
         ret = kvm_get_one_reg(cs, AARCH64_CORE_REG(spsr[i]),
                               &env->banked_spsr[i + 1]);
         if (ret) {
-            TDA_LOG( );
             return ret;
         }
     }
@@ -2404,38 +2393,31 @@ int kvm_arch_get_registers(CPUState *cs, Error **errp)
 
     if (cpu_isar_feature(aa64_sve, cpu)) {
         ret = kvm_arch_get_sve(cs);
-        TDA_LOG( );
     } else {
         ret = kvm_arch_get_fpsimd(cs);
-        TDA_LOG( );
     }
     if (ret) {
-        TDA_LOG( );
         return ret;
     }
 
     ret = kvm_get_one_reg(cs, AARCH64_SIMD_CTRL_REG(fp_regs.fpsr), &fpr);
     if (ret) {
-        TDA_LOG( );
         return ret;
     }
     vfp_set_fpsr(env, fpr);
 
     ret = kvm_get_one_reg(cs, AARCH64_SIMD_CTRL_REG(fp_regs.fpcr), &fpr);
     if (ret) {
-        TDA_LOG( );
         return ret;
     }
     vfp_set_fpcr(env, fpr);
 
     ret = kvm_get_vcpu_events(cpu);
     if (ret) {
-        TDA_LOG( );
         return ret;
     }
 
     if (!write_kvmstate_to_list(cpu)) {
-        TDA_LOG( );
         return -EINVAL;
     }
     /* Note that it's OK to have registers which aren't in CPUState,
@@ -2444,9 +2426,6 @@ int kvm_arch_get_registers(CPUState *cs, Error **errp)
     write_list_to_cpustate(cpu);
 
     ret = kvm_arm_sync_mpstate_to_qemu(cpu);
-    if (ret) {
-        TDA_LOG( );
-    }
 
     /* TODO: other registers */
     return ret;
