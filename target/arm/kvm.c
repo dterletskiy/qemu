@@ -1977,12 +1977,12 @@ int kvm_arch_init_vcpu(CPUState *cs)
     }
 
     // @TDA: ToDo
-    // cpu->isar.id_aa64mmfr1 &= ~(0xFULL << 8);
-    // ret = write_sys_reg64(cs->kvm_fd, &cpu->isar.id_aa64mmfr1,
-    //                       ARM64_SYS_REG(3, 0, 0, 7, 1));
-    // if (ret) {
-    //     return ret;
-    // }
+    cpu->isar.id_aa64mmfr1 &= ~(0xFULL << 8);
+    ret = write_sys_reg64(cs->kvm_fd, &cpu->isar.id_aa64mmfr1,
+                          ARM64_SYS_REG(3, 0, 0, 7, 1));
+    if (ret) {
+        return ret;
+    }
     // cpu->isar.id_aa64mmfr4 &= ~(0xFULL << 24);
     // ret = write_sys_reg64(cs->kvm_fd, &cpu->isar.id_aa64mmfr4,
     //                       ARM64_SYS_REG(3, 0, 0, 7, 4));
