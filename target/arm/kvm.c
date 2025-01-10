@@ -1965,11 +1965,17 @@ int kvm_arch_init_vcpu(CPUState *cs)
 
     // @TDA: ToDo
     cpu->isar.id_aa64mmfr1 &= ~(0xFULL << 8);
-    write_sys_reg64(cs->kvm_fd, &cpu->isar.id_aa64mmfr1,
+    ret = write_sys_reg64(cs->kvm_fd, &cpu->isar.id_aa64mmfr1,
                           ARM64_SYS_REG(3, 0, 0, 7, 1));
+    if (ret) {
+        return ret;
+    }
     cpu->isar.id_aa64mmfr4 &= ~(0xFULL << 24);
-    write_sys_reg64(cs->kvm_fd, &cpu->isar.id_aa64mmfr4,
+    ret = write_sys_reg64(cs->kvm_fd, &cpu->isar.id_aa64mmfr4,
                           ARM64_SYS_REG(3, 0, 0, 7, 4));
+    if (ret) {
+        return ret;
+    }
 
 
     if (cpu_isar_feature(aa64_sve, cpu)) {
