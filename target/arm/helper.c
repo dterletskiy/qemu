@@ -10050,7 +10050,7 @@ static void add_cpreg_to_hashtable(ARMCPU *cpu, const ARMCPRegInfo *r,
     default:
         g_assert_not_reached();
     }
-    TDA( "name=%s / key=0x%x", name, key );
+    TDA_LOG( "name=%s / key=0x%x", name, key );
 
     /* Overriding of an existing definition must be explicitly requested. */
     if (!(r->type & ARM_CP_OVERRIDE)) {
