@@ -893,7 +893,9 @@ static int kvm_arm_init_cpreg_list(ARMCPU *cpu)
 
     for (i = 0, arraylen = 0; i < rlp->n; i++) {
         uint64_t regidx = rlp->reg[i];
+        TDA_LOG( "regidx = 0x%lx", regidx );
         if (!kvm_arm_reg_syncs_via_cpreg_list(regidx)) {
+            TDA_LOG( "---------------- regidx = 0x%lx", regidx );
             continue;
         }
         cpu->cpreg_indexes[arraylen] = regidx;
