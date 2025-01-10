@@ -948,6 +948,11 @@ bool write_kvmstate_to_list(ARMCPU *cpu)
         uint32_t v32;
         int ret;
 
+        uint32_t regidx_ = kvm_to_cpreg_id(cpu->cpreg_indexes[i]);
+        const ARMCPRegInfo *ri;
+        uint64_t newval;
+        ri = get_arm_cp_reginfo(cpu->cp_regs, regidx_);
+
         switch (regidx & KVM_REG_SIZE_MASK) {
         case KVM_REG_SIZE_U32:
             ret = kvm_get_one_reg(cs, regidx, &v32);
@@ -962,7 +967,14 @@ bool write_kvmstate_to_list(ARMCPU *cpu)
             g_assert_not_reached();
         }
         if (ret) {
-            TDA_LOG( "regidx=%lx", regidx );
+            if( ri )
+            {
+                TDA_LOG( "name=%s / regidx=0x%lx", ri->name, regidx );
+            }
+            else
+            {
+                TDA_LOG( "regidx=0x%lx", regidx );
+            }
             ok = false;
         }
     }
