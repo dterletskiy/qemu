@@ -377,6 +377,11 @@ static bool kvm_arm_get_host_cpu_features(ARMHostCPUFeatures *ahcf)
                               ARM64_SYS_REG(3, 0, 0, 7, 2));
         err |= read_sys_reg64(fdarray[2], &ahcf->isar.id_aa64mmfr3,
                               ARM64_SYS_REG(3, 0, 0, 7, 3));
+        err |= read_sys_reg64(fdarray[2], &ahcf->isar.id_aa64mmfr4,
+                              ARM64_SYS_REG(3, 0, 0, 7, 4));
+        ahcf->isar.id_aa64mmfr4 &= ~(0xFULL << 24);
+        err |= write_sys_reg64(fdarray[2], &ahcf->isar.id_aa64mmfr4,
+                              ARM64_SYS_REG(3, 0, 0, 7, 4));
 
         /*
          * Note that if AArch32 support is not present in the host,
