@@ -243,6 +243,20 @@ static int read_sys_reg64(int fd, uint64_t *pret, uint64_t id)
     return ioctl(fd, KVM_GET_ONE_REG, &idreg);
 }
 
+static int write_sys_reg64(int fd, uint64_t *pret, uint64_t id)
+{
+    int ioctl_result;
+
+    struct kvm_one_reg idreg = { .id = id, .addr = (uintptr_t)pret };
+
+    ioctl_result = ioctl(fd, KVM_SET_ONE_REG, &idreg);
+    if(0 > ioctl_result)
+    {
+        TDA_LOG( "ioctl( %d, KVM_SET_ONE_REG, ... ) = %d", fd, ioctl_result );
+    }
+    return ioctl_result;
+}
+
 static bool kvm_arm_pauth_supported(void)
 {
     return (kvm_check_extension(kvm_state, KVM_CAP_ARM_PTRAUTH_ADDRESS) &&
@@ -269,6 +283,18 @@ static int get_host_cpu_reg64(int fd, ARMHostCPUFeatures *ahcf, ARMSysReg sr)
     int ret;
 
     ret = read_sys_reg64(fd, reg,
+                         ARM64_SYS_REG(sr.op0, sr.op1, sr.crn, sr.crm, sr.op2));
+    return ret;
+}
+
+/* write a 64b sysreg value from stored idregs */
+static int set_host_cpu_reg64(int fd, ARMHostCPUFeatures *ahcf, ARMSysReg sr)
+{
+    int index = KVM_ARM_FEATURE_ID_RANGE_IDX(sr.op0, sr.op1, sr.crn, sr.crm, sr.op2);
+    uint64_t *reg = &ahcf->isar.idregs.regs[index];
+    int ret;
+
+    ret = write_sys_reg64(fd, reg,
                          ARM64_SYS_REG(sr.op0, sr.op1, sr.crn, sr.crm, sr.op2));
     return ret;
 }
