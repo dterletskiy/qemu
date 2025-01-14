@@ -249,11 +249,12 @@ static inline bool kvm_arm_sve_supported(void)
     return false;
 }
 
-<<<<<<< HEAD
 static inline bool kvm_arm_mte_supported(void)
-=======
+{
+    return false;
+}
+
 static inline bool kvm_arm_el2_supported(void)
->>>>>>> b9d1fca445 (target/arm/kvm: Add helper to detect EL2 when using KVM)
 {
     return false;
 }
