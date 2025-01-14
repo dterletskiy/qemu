@@ -263,11 +263,17 @@ static bool kvm_arm_pauth_supported(void)
             kvm_check_extension(kvm_state, KVM_CAP_ARM_PTRAUTH_GENERIC));
 }
 
-/* read a 32b sysreg value and store it in the idregs */
-static int get_host_cpu_reg32(int fd, ARMHostCPUFeatures *ahcf, ARMSysReg sr)
+static uint64_t *get_cpu_reg(ARMISARegisters *isar, ARMSysReg sr)
 {
     int index = KVM_ARM_FEATURE_ID_RANGE_IDX(sr.op0, sr.op1, sr.crn, sr.crm, sr.op2);
-    uint64_t *reg = &ahcf->isar.idregs.regs[index];
+    return &isar->idregs.regs[index];
+}
+
+/* read a 32b sysreg value and store it in the idregs */
+static int get_host_cpu_reg32(int fd, ARMISARegisters *isar, ARMSysReg sr)
+{
+    int index = KVM_ARM_FEATURE_ID_RANGE_IDX(sr.op0, sr.op1, sr.crn, sr.crm, sr.op2);
+    uint64_t *reg = &isar->idregs.regs[index];
     int ret;
 
     ret = read_sys_reg32(fd, (uint32_t *)reg,
@@ -276,10 +282,10 @@ static int get_host_cpu_reg32(int fd, ARMHostCPUFeatures *ahcf, ARMSysReg sr)
 }
 
 /* read a 64b sysreg value and store it in the idregs */
-static int get_host_cpu_reg64(int fd, ARMHostCPUFeatures *ahcf, ARMSysReg sr)
+static int get_host_cpu_reg64(int fd, ARMISARegisters *isar, ARMSysReg sr)
 {
     int index = KVM_ARM_FEATURE_ID_RANGE_IDX(sr.op0, sr.op1, sr.crn, sr.crm, sr.op2);
-    uint64_t *reg = &ahcf->isar.idregs.regs[index];
+    uint64_t *reg = &isar->idregs.regs[index];
     int ret;
 
     ret = read_sys_reg64(fd, reg,
@@ -288,10 +294,10 @@ static int get_host_cpu_reg64(int fd, ARMHostCPUFeatures *ahcf, ARMSysReg sr)
 }
 
 /* write a 64b sysreg value from stored idregs */
-static int set_host_cpu_reg64(int fd, ARMHostCPUFeatures *ahcf, ARMSysReg sr)
+static int set_host_cpu_reg64(int fd, ARMISARegisters *isar, ARMSysReg sr)
 {
     int index = KVM_ARM_FEATURE_ID_RANGE_IDX(sr.op0, sr.op1, sr.crn, sr.crm, sr.op2);
-    uint64_t *reg = &ahcf->isar.idregs.regs[index];
+    uint64_t *reg = &isar->idregs.regs[index];
     int ret;
 
     ret = write_sys_reg64(fd, reg,
@@ -412,7 +418,7 @@ kvm_arm_get_host_cpu_features(ARMCPU *cpu, ARMHostCPUFeatures *ahcf,
     ahcf->dtb_compatible = "arm,arm-v8";
     int fd = fdarray[2];
 
-    err = get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64PFR0_EL1);
+    err = get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64PFR0_EL1);
     if (unlikely(err < 0)) {
         /*
          * Before v4.15, the kernel only exposed a limited number of system
@@ -433,17 +439,38 @@ kvm_arm_get_host_cpu_features(ARMCPU *cpu, ARMHostCPUFeatures *ahcf,
         SET_IDREG(&ahcf->isar.idregs, ID_AA64PFR0, 0x00000011); /* EL1&0, AArch64 only */
         err = 0;
     } else {
-        err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64PFR1_EL1);
-        err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64SMFR0_EL1);
-        err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64DFR0_EL1);
-        err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64DFR1_EL1);
-        err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64ISAR0_EL1);
-        err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64ISAR1_EL1);
-        err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64ISAR2_EL1);
-        err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64MMFR0_EL1);
-        err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64MMFR1_EL1);
-        err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64MMFR2_EL1);
-        err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64MMFR3_EL1);
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64PFR1_EL1);
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64SMFR0_EL1);
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64DFR0_EL1);
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64DFR1_EL1);
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64ISAR0_EL1);
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64ISAR1_EL1);
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64ISAR2_EL1);
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64MMFR0_EL1);
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64MMFR1_EL1);
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64MMFR2_EL1);
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64MMFR3_EL1);
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64MMFR4_EL1);
+
+        // @TDA: ToDo: Need to wrapped into qemu parameters
+        if( 1 )
+        {
+            uint64_t *reg;
+
+            reg = get_cpu_reg(&ahcf->isar, SYS_ID_AA64MMFR1_EL1);
+            *reg &= ~(0xFULL << 8);
+            err |= set_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64MMFR1_EL1);
+
+            reg = get_cpu_reg(&ahcf->isar, SYS_ID_AA64MMFR2_EL1);
+            *reg &= ~(0xFULL << 24);
+            err |= set_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64MMFR2_EL1);
+
+            reg = get_cpu_reg(&ahcf->isar, SYS_ID_AA64MMFR4_EL1);
+            *reg &= ~(0xFULL << 20);
+            *reg &= ~(0xFULL << 24);
+            err |= set_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64MMFR4_EL1);
+        }
+        // @TDA: ToDo: Need to wrapped into qemu parameters
 
         /*
          * Note that if AArch32 support is not present in the host,
@@ -452,21 +479,21 @@ kvm_arm_get_host_cpu_features(ARMCPU *cpu, ARMHostCPUFeatures *ahcf,
          * than skipping the reads and leaving 0, as we must avoid
          * considering the values in every case.
          */
-        err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64PFR0_EL1);
-        err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64PFR1_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_DFR0_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_MMFR0_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_MMFR1_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_MMFR2_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_MMFR3_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_ISAR0_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_ISAR1_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_ISAR2_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_ISAR3_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_ISAR4_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_ISAR5_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_ISAR6_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_MMFR4_EL1);
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64PFR0_EL1); // @TDA: ToDo: Move up
+        err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64PFR1_EL1); // @TDA: ToDo: Remove
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_DFR0_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_MMFR0_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_MMFR1_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_MMFR2_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_MMFR3_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_ISAR0_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_ISAR1_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_ISAR2_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_ISAR3_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_ISAR4_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_ISAR5_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_ISAR6_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_MMFR4_EL1);
 
         err |= read_sys_reg32(fdarray[2], &ahcf->isar.mvfr0,
                               ARM64_SYS_REG(3, 0, 0, 3, 0));
@@ -474,9 +501,9 @@ kvm_arm_get_host_cpu_features(ARMCPU *cpu, ARMHostCPUFeatures *ahcf,
                               ARM64_SYS_REG(3, 0, 0, 3, 1));
         err |= read_sys_reg32(fdarray[2], &ahcf->isar.mvfr2,
                               ARM64_SYS_REG(3, 0, 0, 3, 2));
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_PFR2_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_DFR1_EL1);
-        err |= get_host_cpu_reg32(fd, ahcf, SYS_ID_MMFR5_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_PFR2_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_DFR1_EL1);
+        err |= get_host_cpu_reg32(fd, &ahcf->isar, SYS_ID_MMFR5_EL1);
 
         /* Make sure writable ID reg values are read */
         if (exhaustive) {
@@ -527,7 +554,7 @@ kvm_arm_get_host_cpu_features(ARMCPU *cpu, ARMHostCPUFeatures *ahcf,
              * enabled SVE support, which resulted in an error rather than RAZ.
              * So only read the register if we set KVM_ARM_VCPU_SVE above.
              */
-            err |= get_host_cpu_reg64(fd, ahcf, SYS_ID_AA64ZFR0_EL1);
+            err |= get_host_cpu_reg64(fd, &ahcf->isar, SYS_ID_AA64ZFR0_EL1);
         }
     }
 
@@ -2066,6 +2093,36 @@ int kvm_arch_init_vcpu(CPUState *cs)
     if (ret) {
         return ret;
     }
+
+    // @TDA: ToDo: Need to wrapped into qemu parameters
+    if( 1 )
+    {
+        uint64_t *reg;
+
+        reg = get_cpu_reg(&cpu->isar, SYS_ID_AA64MMFR1_EL1);
+        *reg &= ~(0xFULL << 8);
+        ret = set_host_cpu_reg64(cs->kvm_fd, &cpu->isar, SYS_ID_AA64MMFR1_EL1);
+        if (ret) {
+            return ret;
+        }
+
+        reg = get_cpu_reg(&cpu->isar, SYS_ID_AA64MMFR2_EL1);
+        *reg &= ~(0xFULL << 24);
+        ret = set_host_cpu_reg64(cs->kvm_fd, &cpu->isar, SYS_ID_AA64MMFR2_EL1);
+        if (ret) {
+            return ret;
+        }
+
+        reg = get_cpu_reg(&cpu->isar, SYS_ID_AA64MMFR4_EL1);
+        *reg &= ~(0xFULL << 20);
+        *reg &= ~(0xFULL << 24);
+        ret = set_host_cpu_reg64(cs->kvm_fd, &cpu->isar, SYS_ID_AA64MMFR4_EL1);
+        if (ret) {
+            return ret;
+        }
+    }
+    // @TDA: ToDo: Need to wrapped into qemu parameters
+
 
     if (cpu_isar_feature(aa64_sve, cpu)) {
         ret = kvm_arm_sve_set_vls(cpu);
