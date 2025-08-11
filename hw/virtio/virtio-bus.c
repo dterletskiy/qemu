@@ -22,6 +22,7 @@
  *
  */
 
+#include "qemu/log_tda.h"
 #include "qemu/osdep.h"
 #include "qemu/error-report.h"
 #include "qemu/module.h"
@@ -52,6 +53,7 @@ void virtio_bus_device_plugged(VirtIODevice *vdev, Error **errp)
     Error *local_err = NULL;
 
     DPRINTF("%s: plug device.\n", qbus->name);
+    TDA_PRINTF("%s: plug device.\n", qbus->name);
 
     if (klass->pre_plugged != NULL) {
         klass->pre_plugged(qbus->parent, &local_err);
