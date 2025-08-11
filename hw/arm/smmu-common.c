@@ -16,6 +16,7 @@
  *
  */
 
+#include "qemu/log_tda.h"
 #include "qemu/osdep.h"
 #include "trace.h"
 #include "exec/target_page.h"
@@ -859,6 +860,7 @@ static AddressSpace *smmu_find_add_as(PCIBus *bus, void *opaque, int devfn)
         g_free(name);
     }
 
+    TDA_PRINTF("devfn: %d", devfn);
     return &sdev->as;
 }
 
